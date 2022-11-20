@@ -514,6 +514,10 @@ body {
     color: #6c757d;
     opacity: 1;
   }
+
+  &.ng-invalid:not(.ng-untouched) {
+    border-color: $danger;
+  }
 }
 
 .form-select {
