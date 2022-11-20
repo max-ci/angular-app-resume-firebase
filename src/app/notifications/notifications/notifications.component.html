@@ -1,0 +1,13 @@
+<div *ngIf="notifications.length" class="notifications-container">
+  <div
+    *ngFor="let notification of notifications"
+    class="notification"
+    [ngClass]="{ 'notification-danger': notification.type === 'danger' }"
+  >
+    {{ notification.message }}
+    <button
+      class="btn notification-close"
+      (click)="hide(notification.id)"
+    ></button>
+  </div>
+</div>

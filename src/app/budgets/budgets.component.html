@@ -1,0 +1,26 @@
+<div class="budgets-container">
+  <app-budgets-list
+    [budgets]="budgets"
+    [currentBudget]="currentBudget"
+    (selected)="setCurrentBudget($event)"
+    (deleted)="deleteBudget($event)"
+  ></app-budgets-list>
+
+  <app-budget-details
+    [budgets]="budgets"
+    [currentBudget]="currentBudget"
+    [mode]="mode"
+    (saved)="saveBudget($event)"
+    (reseted)="reset()"
+  ></app-budget-details>
+</div>
+
+<div class="load-sample-data-wrapper">
+  <button
+    type="button"
+    class="btn btn-primary load-sample-data"
+    (click)="loadSampleData()"
+  >
+    Load sample data
+  </button>
+</div>
