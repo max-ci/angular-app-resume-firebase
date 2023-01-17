@@ -1,22 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { Observable } from 'rxjs';
 import { Budget } from '../common/interfaces/budget';
-import { BudgetsService } from '../common/services/budgets.service';
+import { ExpensesService } from '../common/services/expenses.service';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomeComponent implements OnInit {
-  budgets: Budget[] = [];
+export class HomeComponent {
+  public readonly expenses$: Observable<Budget[]>;
 
-  constructor(private budgetsService: BudgetsService) {}
-
-  ngOnInit(): void {
-    this.getAllBudgets();
-  }
-
-  getAllBudgets(): void {
-    this.budgets = this.budgetsService.getAll();
+  constructor(private expensesService: ExpensesService) {
+    this.expenses$ = this.expensesService.expenses$;
   }
 }

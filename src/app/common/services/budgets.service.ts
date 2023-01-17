@@ -1,115 +1,189 @@
 import { Injectable } from '@angular/core';
 import { Budget } from '../interfaces/budget';
 import { v4 as uuidv4 } from 'uuid';
+import { budgetsData, expensesData } from '../data/budgets.data';
+import {
+  BehaviorSubject,
+  forkJoin,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  switchMap,
+  tap,
+} from 'rxjs';
+import {
+  parseFirestoreObject,
+  prepareGetPayload,
+} from '../helpers/firestore.helper';
+import { HttpClientService } from './http-client.service';
+import { AuthService } from './auth.service';
 import { Expense } from '../interfaces/expense';
-import { budgetsData } from '../data/budgets.data';
+
+const POST_BASE_URL =
+  'https://firestore.googleapis.com/v1/projects/angular-resume-app/databases/(default)/documents';
+const DELETE_BASE_URL = 'https://firestore.googleapis.com/v1/';
+const BASE_BUDGETS_COLLECTION_PATH =
+  'projects/angular-resume-app/databases/(default)/documents/budgets/';
+const BASE_EXPENSES_COLLECTION_PATH =
+  'projects/angular-resume-app/databases/(default)/documents/expenses/';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BudgetsService {
-  budgets: Budget[] = localStorage.getItem('budgets')
-    ? JSON.parse(localStorage.getItem('budgets'))
-    : [...budgetsData];
+  public readonly budgets$: Observable<Budget[]>;
+  private readonly _refreshSub$: BehaviorSubject<void>;
 
-  getAll(): Budget[] {
-    return this.budgets;
-  }
+  constructor(
+    private http: HttpClientService,
+    private authService: AuthService
+  ) {
+    this._refreshSub$ = new BehaviorSubject<void>(undefined);
 
-  create(budget: Budget): void {
-    this.budgets = [
-      ...this.budgets,
-      { ...budget, id: uuidv4(), value: parseFloat(budget.value.toString()) },
-    ];
-
-    this.saveToLocalStorage();
-  }
-
-  update(updatedBudget: Budget): void {
-    this.budgets = this.budgets.map((budget) => {
-      if (budget.id === updatedBudget.id) {
-        return { ...updatedBudget };
-      }
-      return budget;
-    });
-
-    this.saveToLocalStorage();
-  }
-
-  delete(id: string): void {
-    this.budgets = this.budgets.filter((budget) => budget.id !== id);
-
-    this.saveToLocalStorage();
-  }
-
-  createExpense(expense: Expense, budgetId: string): void {
-    this.budgets = this.budgets.map((budget) => {
-      if (budget.id === budgetId) {
-        return {
-          ...budget,
-          expenses: [...budget.expenses, { ...expense, id: uuidv4() }],
-        };
-      }
-      return budget;
-    });
-
-    this.saveToLocalStorage();
-  }
-
-  updateExpense(updatedExpense: Expense, budgetId: string): void {
-    this.budgets = this.budgets.map((budget) => {
-      const expenseInBudget = budget.expenses.find(
-        (expense) => expense.id === updatedExpense.id
-      );
-
-      if (expenseInBudget) {
-        if (budget.id === budgetId) {
-          const expenses = budget.expenses.map((expense) => {
-            if (expenseInBudget.id === expense.id) {
-              return updatedExpense;
-            }
-            return expense;
-          });
-          return { ...budget, expenses };
-        } else {
-          const expenses = budget.expenses.filter(
-            (expense) => expense.id !== updatedExpense.id
-          );
-          return { ...budget, expenses };
+    this.budgets$ = this._refreshSub$.pipe(
+      switchMap(() => this.authService.userToken$),
+      switchMap((token: string) => {
+        if (!token) {
+          return of(null);
         }
-      } else {
-        if (budget.id === budgetId) {
-          return { ...budget, expenses: [...budget.expenses, updatedExpense] };
-        }
-      }
-      return budget;
-    });
 
-    this.saveToLocalStorage();
-  }
-
-  deleteExpense(expenseId: string, budgetId: string): void {
-    this.budgets = this.budgets.map((budget) => {
-      if (budget.id === budgetId) {
-        const expenses = budget.expenses.filter(
-          (expense) => expense.id !== expenseId
+        return this.http.post(
+          `${POST_BASE_URL}:runQuery`,
+          prepareGetPayload('budgets', 'name'),
+          token
         );
+      }),
+      map((data: any) => {
+        if (!data || !data?.[0]?.document) {
+          return [];
+        }
 
-        return { ...budget, expenses };
-      }
-      return budget;
+        return data.map((obj: any) => {
+          const budget = parseFirestoreObject(obj.document.fields);
+          return { ...budget, id: obj.document.name };
+        });
+      }),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+  }
+
+  create(budget: Budget) {
+    return this.authService.userToken$.pipe(
+      switchMap((token: string) => {
+        return this.http.post(
+          `${POST_BASE_URL}/budgets`,
+          {
+            fields: {
+              id: { stringValue: uuidv4() },
+              name: { stringValue: budget.name },
+              color: { stringValue: budget.color },
+              value: { integerValue: budget.value },
+            },
+          },
+          token
+        );
+      }),
+      tap((): void => {
+        this._refreshSub$.next();
+      })
+    );
+  }
+
+  update(updatedBudget: Budget) {
+    return this.authService.userToken$.pipe(
+      switchMap((token: string) => {
+        return this.http.post(
+          `${POST_BASE_URL}:commit`,
+          {
+            writes: [
+              {
+                update: {
+                  name: updatedBudget.id,
+                  fields: {
+                    id: { stringValue: updatedBudget.id },
+                    name: { stringValue: updatedBudget.name },
+                    color: { stringValue: updatedBudget.color },
+                    value: {
+                      integerValue: updatedBudget.value,
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          token
+        );
+      }),
+      tap((): void => this._refreshSub$.next())
+    );
+  }
+
+  delete(id: string) {
+    return this.authService.userToken$.pipe(
+      switchMap((token: string) => {
+        return this.http.delete(`${DELETE_BASE_URL}${id}`, token);
+      }),
+      tap((): void => this._refreshSub$.next())
+    );
+  }
+
+  loadSampleData() {
+    const budgets = budgetsData.map((budget: Budget, index: number) => {
+      return {
+        update: {
+          name: `${BASE_BUDGETS_COLLECTION_PATH}budget${index}`,
+          fields: {
+            id: {
+              stringValue: `${BASE_BUDGETS_COLLECTION_PATH}budget${index}`,
+            },
+            name: { stringValue: budget.name },
+            color: { stringValue: budget.color },
+            value: { integerValue: budget.value },
+          },
+        },
+      };
     });
 
-    this.saveToLocalStorage();
-  }
+    const expenses = expensesData.map((expense: Expense, index: number) => {
+      return {
+        update: {
+          name: `${BASE_EXPENSES_COLLECTION_PATH}expense${index}`,
+          fields: {
+            id: {
+              stringValue: `${BASE_EXPENSES_COLLECTION_PATH}expense${index}`,
+            },
+            budgetId: {
+              stringValue: `${BASE_BUDGETS_COLLECTION_PATH}budget${expense.budgetId}`,
+            },
+            name: { stringValue: expense.name },
+            price: { integerValue: expense.price },
+            amount: { integerValue: expense.amount },
+          },
+        },
+      };
+    });
 
-  setSampleData(): void {
-    this.budgets = [...budgetsData];
-
-    this.saveToLocalStorage();
-  }
-
-  saveToLocalStorage(): void {
-    localStorage.setItem('budgets', JSON.stringify(this.budgets));
+    return this.authService.userToken$.pipe(
+      switchMap((token: string) => {
+        return forkJoin({
+          budgets: this.http.post(
+            `${POST_BASE_URL}:commit`,
+            {
+              writes: budgets,
+            },
+            token
+          ),
+          expenses: this.http.post(
+            `${POST_BASE_URL}:commit`,
+            {
+              writes: expenses,
+            },
+            token
+          ),
+        });
+      }),
+      tap((): void => this._refreshSub$.next())
+    );
   }
 }

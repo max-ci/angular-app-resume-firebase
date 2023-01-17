@@ -3,7 +3,7 @@
     budget<span class="main-heading-secondary">Tracker</span>
   </h1>
 
-  <nav class="nav" *ngIf="isLoggedIn()">
+  <nav class="nav" *ngIf="isLoggedIn$ | async">
     <a
       class="nav-link"
       *ngFor="let link of links"

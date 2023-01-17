@@ -1,16 +1,13 @@
-<form
-  class="budgets-form"
-  #form="ngForm"
-  (submit)="this.saved.emit(currentBudget)"
->
+<form class="budgets-form" [formGroup]="form" (ngSubmit)="this.saved.emit()">
+  <input type="hidden" formControlName="id" />
+
   <div class="budgets-form-item">
     <label class="budgets-form-label" for="name">Name</label>
     <input
       class="budgets-form-input form-control"
       type="text"
       name="name"
-      [(ngModel)]="currentBudget.name"
-      required
+      formControlName="name"
     />
   </div>
 
@@ -20,7 +17,7 @@
       class="budgets-form-input form-control form-control-color"
       type="color"
       name="color"
-      [(ngModel)]="currentBudget.color"
+      formControlName="color"
       required
     />
   </div>
@@ -31,9 +28,7 @@
       class="budgets-form-input form-control"
       type="text"
       name="value"
-      [(ngModel)]="currentBudget.value"
-      required
-      pattern="\d*"
+      formControlName="value"
     />
   </div>
 
@@ -43,14 +38,14 @@
       class="budgets-form-button btn btn-primary"
       [disabled]="form.invalid"
     >
-      {{ mode }}
+      <fa-icon [icon]="faSave"></fa-icon> {{ mode }}
     </button>
     <button
       type="button"
       class="budgets-form-button btn btn-secondary"
       (click)="this.reseted.emit()"
     >
-      Reset
+      <fa-icon [icon]="faUndo"></fa-icon> Reset
     </button>
   </div>
 </form>

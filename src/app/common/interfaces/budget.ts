@@ -5,5 +5,5 @@ export interface Budget {
   name: string;
   color: string;
   value: number;
-  expenses: Expense[];
+  expenses?: Expense[];
 }

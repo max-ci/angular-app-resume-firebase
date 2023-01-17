@@ -1,17 +1,11 @@
-<form
-  #form="ngForm"
-  class="expenses-form"
-  (submit)="
-    this.saved.emit({ expense: currentExpense, budgetId: currentBudgetId })
-  "
->
+<form class="expenses-form" [formGroup]="form" (ngSubmit)="this.saved.emit()">
   <div class="expenses-form-item">
     <label for="name" class="expenses-form-label">Name</label>
     <input
       type="text"
       name="name"
       class="form-control expenses-form-input"
-      [(ngModel)]="currentExpense.name"
+      formControlName="name"
       required
     />
   </div>
@@ -22,7 +16,7 @@
       type="text"
       name="price"
       class="form-control expenses-form-input"
-      [(ngModel)]="currentExpense.price"
+      formControlName="price"
       required
       pattern="\d*"
     />
@@ -34,7 +28,7 @@
       type="text"
       name="amount"
       class="form-control expenses-form-input"
-      [(ngModel)]="currentExpense.amount"
+      formControlName="amount"
       required
       pattern="\d*"
     />
@@ -46,7 +40,7 @@
     <select
       name="budgetId"
       class="form-control form-select"
-      [(ngModel)]="currentBudgetId"
+      formControlName="budgetId"
       required
     >
       <option value="" disabled selected>Select budget</option>
@@ -59,7 +53,7 @@
 
   <div class="expenses-form-buttons">
     <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
-      {{ mode }}
+      <fa-icon [icon]="faSave"></fa-icon> {{ mode }}
     </button>
 
     <button
@@ -67,7 +61,7 @@
       class="btn btn-secondary"
       (click)="this.reseted.emit()"
     >
-      Reset
+      <fa-icon [icon]="faUndo"></fa-icon> Reset
     </button>
   </div>
 </form>

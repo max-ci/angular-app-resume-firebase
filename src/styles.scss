@@ -563,7 +563,7 @@ body {
 
 .load-sample-data-wrapper {
   text-align: center;
-  margin-top: 2rem;
+  margin-bottom: 2rem;
 
   @media (min-width: 768px) {
     margin-top: 0;
@@ -572,3 +572,20 @@ body {
     top: 1rem;
   }
 }
+.dialog-content {
+  display: block;
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.dialog-content-message {
+  margin-top: 0;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+@import "~@angular/cdk/overlay-prebuilt.css";

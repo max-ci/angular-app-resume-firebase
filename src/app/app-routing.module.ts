@@ -8,10 +8,14 @@ import {
 } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
 import { BudgetsComponent } from './budgets/budgets.component';
-import { AuthGuard } from './common/guards/auth.guard';
 import { ExpensesComponent } from './expenses/expenses.component';
 import { HomeComponent } from './home/home.component';
 import { StatsComponent } from './stats/stats.component';
+import {
+  AngularFireAuthGuard,
+  redirectLoggedInTo,
+  redirectUnauthorizedTo,
+} from '@angular/fire/compat/auth-guard';
 
 @Injectable({ providedIn: 'root' })
 export class TemplatePageTitleStrategy extends TitleStrategy {
@@ -27,10 +31,14 @@ export class TemplatePageTitleStrategy extends TitleStrategy {
   }
 }
 
+const redirectLoggedInToHome = () => redirectLoggedInTo(['home']);
+const redirectNotLoggedInToLogin = () => redirectUnauthorizedTo(['login']);
+
 const routes: Routes = [
   {
     path: '',
-    canActivate: [AuthGuard],
+    canActivate: [AngularFireAuthGuard],
+    data: { authGuardPipe: redirectNotLoggedInToLogin },
     children: [
       {
         path: 'home',
@@ -57,6 +65,8 @@ const routes: Routes = [
   {
     path: 'login',
     title: 'Login',
+    canActivate: [AngularFireAuthGuard],
+    data: { authGuardPipe: redirectLoggedInToHome },
     component: LoginComponent,
   },
   {

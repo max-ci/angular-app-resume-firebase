@@ -1,5 +1,8 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { User } from '@angular/fire/auth';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
 import { Link } from './common/interfaces/link';
 import { AuthService } from './common/services/auth.service';
 
@@ -7,8 +10,11 @@ import { AuthService } from './common/services/auth.service';
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
+  isLoggedIn$: Observable<User | null> = this.auth.authState;
+
   links: Link[] = [
     {
       path: 'home',
@@ -28,14 +34,13 @@ export class AppComponent {
     },
   ];
 
-  constructor(private authService: AuthService, private router: Router) {}
-
-  isLoggedIn(): boolean {
-    return this.authService.isLoggedIn();
-  }
+  constructor(
+    private authService: AuthService,
+    public router: Router,
+    private auth: AngularFireAuth
+  ) {}
 
   logout(): void {
     this.authService.logout();
-    this.router.navigateByUrl('login');
   }
 }
